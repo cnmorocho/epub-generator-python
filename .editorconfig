@@ -1,0 +1,21 @@
+# EditorConfig is awesome: https://editorconfig.org
+
+# Root configuration file
+root = true
+
+# [*.py] se aplica a todos los archivos Python
+[*.py]
+# Usar espacios para la indentación (en lugar de tabuladores)
+indent_style = space
+# Usar 4 espacios por nivel de indentación
+indent_size = 4
+# Añadir una línea en blanco al final del archivo
+insert_final_newline = true
+# El archivo no debe contener más de 79 caracteres por línea (convenio PEP 8)
+max_line_length = 79
+# Usar comillas simples en lugar de comillas dobles, si es posible
+quote_type = single
+# No agregar líneas en blanco innecesarias (PEP 8 recomienda una línea entre funciones o clases)
+trim_trailing_whitespace = true
+# Dejar una línea en blanco entre las definiciones de funciones o clases
+python_function_spacing = 2
