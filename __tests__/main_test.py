@@ -1,4 +1,4 @@
-from main import Epub, EpubChapter, EpubContent, EpubMetadata
+from src.main import Epub, EpubChapter, EpubContent, EpubMetadata
 import os
 
 
@@ -30,9 +30,10 @@ def test_build_epub() -> None:
     ]
 
     epub_chapters = [
-    EpubChapter(title=chapter['title'], content_html=chapter['contentHTML'], subtitle=chapter.get('subtitle'))
-    for chapter in chapters
-]
+        EpubChapter(
+            title=chapter['title'], content_html=chapter['contentHTML'], subtitle=chapter.get('subtitle'))
+        for chapter in chapters
+    ]
 
     content = EpubContent(epub_chapters)
     output_dir = '.'

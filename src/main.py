@@ -5,17 +5,19 @@ import xml.etree.ElementTree as ET
 import zipfile
 import shutil
 import logging
+from typing import List, Optional
+from src.utils.language import Language
 
 logging.basicConfig(
-    level=logging.DEBUG,  # Establece el nivel de mensajes que se van a registrar
-    format='%(asctime)s - %(levelname)s - %(message)s',  # Formato del mensaje
-    filename='app.log',  # Nombre del archivo de salida (opcional)
-    filemode='w'  # Modo de archivo: 'w' para sobrescribir o 'a' para agregar (opcional)
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    filename='app.log',
+    filemode='w'
 )
 
 
 class EpubMetadata:
-    def __init__(self, title, author, language, description, subjects, publication_date, publisher):
+    def __init__(self, title: str, author: str, language: Language, description: str, subjects: List[str], publication_date: str, publisher: str):
         self.title = title
         self.author = author
         self.language = language
@@ -25,8 +27,17 @@ class EpubMetadata:
         self.publisher = publisher
 
 
+class EpubChapter:
+    def __init__(self, title: str, content_html: str, subtitle: Optional[str] = None):
+        self.id = None
+        self.title = title
+        self.subtitle = subtitle
+        self.content_html = content_html
+        self.relative_path = None
+
+
 class EpubContent:
-    def __init__(self, chapters):
+    def __init__(self, chapters: List[EpubChapter]):
         if not isinstance(chapters, list):
             raise ValueError(f'chapters must be a list')
         if not all(isinstance(chapter, EpubChapter) for chapter in chapters):
@@ -35,17 +46,8 @@ class EpubContent:
         self.chapters = chapters
 
 
-class EpubChapter:
-    def __init__(self, title, content_html, subtitle=None):
-        self.id = None
-        self.title = title
-        self.subtitle = subtitle
-        self.content_html = content_html
-        self.relative_path = None
-
-
 class Epub:
-    def __init__(self, metadata, content, output_dir):
+    def __init__(self, metadata: EpubMetadata, content: EpubContent, output_dir: str):
         if not isinstance(metadata, EpubMetadata):
             raise ValueError(f'metadata of type {type(
                 metadata)} must be an instance of EpubMetadata')
@@ -54,13 +56,14 @@ class Epub:
                 content)} must be an instance of EpubContent')
         self.metadata = metadata
         self.temp_dir = tempfile.mkdtemp()
-        # self.templates_dir = os.path.dirname(
-        #     os.path.realpath(__file__)) + '/templates'
         self.content = content
         self.output_dir = output_dir
         self.uuid = uuid.uuid4()
 
     def build(self):
+        '''
+        A partir de los parametros definidos en el constructor al instanciar la clase, crea la estructura del epub, completa el epub con toda la información y lo comprime en el formato epub.
+        '''
         self.__create_epub_structure()
         self.__create_chapters_files()
         self.__create_toc_page()
@@ -133,7 +136,7 @@ class Epub:
                 title = ET.SubElement(head, 'title')
                 title.text = chapter.title
                 ET.SubElement(head, 'link', {
-                            'rel': 'stylesheet', 'type': 'text/css', 'href': '../Styles/styles.css'})
+                    'rel': 'stylesheet', 'type': 'text/css', 'href': '../Styles/styles.css'})
                 body = ET.SubElement(html, 'body')
                 h1 = ET.SubElement(body, 'h1')
                 h1.text = chapter.title
@@ -148,14 +151,14 @@ class Epub:
                     for child in content_fragment:
                         body.append(child)
                 except ET.ParseError:
-                    logging.warning(f"Invalid HTML content in chapter {chapter.id}. Skipping contentHTML.")
+                    logging.warning(f"Invalid HTML content in chapter {
+                                    chapter.id}. Skipping contentHTML.")
 
                 tree = ET.ElementTree(html)
                 tree.write(os.path.join(self.temp_dir, 'OEBPS', chapter.relative_path), encoding='utf-8',
-                        xml_declaration=True, method='xml')
+                           xml_declaration=True, method='xml')
         except Exception as e:
             logging.error('Error creating chapters files.', exc_info=True)
-
 
     def __create_metainf_file(self):
         root = ET.Element('container', {
@@ -210,15 +213,16 @@ class Epub:
 
     def __create_toc_page(self):
         try:
-            root = ET.Element('html', {'xmlns': 'http://www.w3.org/1999/xhtml'})
+            root = ET.Element(
+                'html', {'xmlns': 'http://www.w3.org/1999/xhtml'})
             ET.SubElement(ET.SubElement(root, 'head'),
-                        'title').text = 'Table of Contents'
+                          'title').text = 'Table of Contents'
             body = ET.SubElement(root, 'body')
             ET.SubElement(body, 'h1').text = 'Table of Contents'
             ol = ET.SubElement(body, 'ol')
             for chapter in self.content.chapters:
                 ET.SubElement(ET.SubElement(ol, 'li'), 'a', {
-                            'href': os.path.basename(chapter.relative_path)}).text = chapter.title
+                    'href': os.path.basename(chapter.relative_path)}).text = chapter.title
 
             tree = ET.ElementTree(root)
             with open(os.path.join(self.temp_dir, 'OEBPS', 'Text', 'toc.xhtml'), 'wb') as toc_page:
