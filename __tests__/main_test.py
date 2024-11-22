@@ -1,4 +1,5 @@
 from src.main import Epub, EpubChapter, EpubContent, EpubMetadata
+from src.utils.language import Language
 import os
 
 
@@ -9,7 +10,7 @@ def test_build_epub() -> None:
     Then should build an epub file
     """
 
-    metadata = EpubMetadata('David Copperfield', 'Charles Dickens', 'en', 'David Copperfield is the eighth novel by Charles Dickens. The story follows the life of David Copperfield from childhood to maturity.', [
+    metadata = EpubMetadata('David Copperfield', 'Charles Dickens', Language.English, 'David Copperfield is the eighth novel by Charles Dickens. The story follows the life of David Copperfield from childhood to maturity.', [
                             'fiction', 'literature', 'Classics'], '1850-05-01', 'Bradbury & Evans')
     chapters = [
         {

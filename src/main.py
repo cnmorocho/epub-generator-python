@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 import shutil
 import logging
-from typing import List, Optional
+from typing import List, Optional, Union
 from src.utils.language import Language
 
 logging.basicConfig(
@@ -17,7 +17,7 @@ logging.basicConfig(
 
 
 class EpubMetadata:
-    def __init__(self, title: str, author: str, language: Language, description: str, subjects: List[str], publication_date: str, publisher: str):
+    def __init__(self, title: str, author: str, language: Union[Language, str], description: str, subjects: List[str], publication_date: str, publisher: str):
         self.title = title
         self.author = author
         self.language = language
