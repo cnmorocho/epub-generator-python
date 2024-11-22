@@ -4,6 +4,14 @@ import os
 import xml.etree.ElementTree as ET
 import zipfile
 import shutil
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,  # Establece el nivel de mensajes que se van a registrar
+    format='%(asctime)s - %(levelname)s - %(message)s',  # Formato del mensaje
+    filename='app.log',  # Nombre del archivo de salida (opcional)
+    filemode='w'  # Modo de archivo: 'w' para sobrescribir o 'a' para agregar (opcional)
+)
 
 
 class EpubMetadata:
@@ -46,8 +54,8 @@ class Epub:
                 content)} must be an instance of EpubContent')
         self.metadata = metadata
         self.temp_dir = tempfile.mkdtemp()
-        self.templates_dir = os.path.dirname(
-            os.path.realpath(__file__)) + '/templates'
+        # self.templates_dir = os.path.dirname(
+        #     os.path.realpath(__file__)) + '/templates'
         self.content = content
         self.output_dir = output_dir
         self.uuid = uuid.uuid4()
@@ -85,8 +93,10 @@ class Epub:
             os.makedirs(os.path.join(self.temp_dir, 'OEBPS', 'Text'))
             os.makedirs(os.path.join(self.temp_dir, 'OEBPS', 'Styles'))
             os.makedirs(os.path.join(self.temp_dir, 'OEBPS', 'Images'))
+
+            logging.info('Epub structure created.')
         except Exception as e:
-            print(e)
+            logging.error('Error creating epub structure.', exc_info=True)
 
     def __create_toc_file(self):
         root = ET.Element(
@@ -107,31 +117,45 @@ class Epub:
             ET.SubElement(nav_point, 'content', {'src': chapter.relative_path})
 
         tree = ET.ElementTree(root)
-        with open(os.path.join(self.temp_dir, 'OEBPS', 'toc.ncx'), 'w') as toc:
+        logging.info('Toc file created.')
+        with open(os.path.join(self.temp_dir, 'OEBPS', 'toc.ncx'), 'wb') as toc:
             tree.write(toc, encoding="utf-8", xml_declaration=True)
 
     def __create_chapters_files(self):
-        for index, chapter in enumerate(self.content.chapters):
-            chapter.id = f'C{index + 1}'
-            chapter.relative_path = f'Text/{chapter.id}.xhtml'
+        ET.register_namespace('', 'http://www.w3.org/1999/xhtml')
+        try:
+            for index, chapter in enumerate(self.content.chapters):
+                chapter.id = f'C{index + 1}'
+                chapter.relative_path = f'Text/{chapter.id}.xhtml'
 
-            html = ET.Element('{http://www.w3.org/1999/xhtml}html')
-            head = ET.SubElement(html, 'head')
-            title = ET.SubElement(head, 'title')
-            title.text = chapter.title
-            ET.SubElement(head, 'link', {
-                          'rel': 'stylesheet', 'type': 'text/css', 'href': '../Styles/styles.css'})
-            body = ET.SubElement(html, 'body')
-            h1 = ET.SubElement(body, 'h1')
-            h1.text = chapter.title
+                html = ET.Element('html', xmlns="http://www.w3.org/1999/xhtml")
+                head = ET.SubElement(html, 'head')
+                title = ET.SubElement(head, 'title')
+                title.text = chapter.title
+                ET.SubElement(head, 'link', {
+                            'rel': 'stylesheet', 'type': 'text/css', 'href': '../Styles/styles.css'})
+                body = ET.SubElement(html, 'body')
+                h1 = ET.SubElement(body, 'h1')
+                h1.text = chapter.title
 
-            if chapter.subtitle:
-                h2 = ET.SubElement(body, 'h2')
-                h2.text = chapter.subtitle
+                if chapter.subtitle:
+                    h2 = ET.SubElement(body, 'h2')
+                    h2.text = chapter.subtitle
 
-            tree = ET.ElementTree(html)
-            tree.write(chapter.relative_path, encoding='utf-8',
-                       xml_declaration=True, method='xml')
+                try:
+                    content_fragment = ET.fromstring(
+                        f"<div>{chapter.content_html}</div>")
+                    for child in content_fragment:
+                        body.append(child)
+                except ET.ParseError:
+                    logging.warning(f"Invalid HTML content in chapter {chapter.id}. Skipping contentHTML.")
+
+                tree = ET.ElementTree(html)
+                tree.write(os.path.join(self.temp_dir, 'OEBPS', chapter.relative_path), encoding='utf-8',
+                        xml_declaration=True, method='xml')
+        except Exception as e:
+            logging.error('Error creating chapters files.', exc_info=True)
+
 
     def __create_metainf_file(self):
         root = ET.Element('container', {
@@ -141,7 +165,7 @@ class Epub:
                       'full-path': 'OEBPS/content.opf', 'media-type': 'application/oebps-package+xml'})
 
         tree = ET.ElementTree(root)
-        with open(os.path.join(self.temp_dir, 'META-INF', 'container.xml'), 'w') as metainf:
+        with open(os.path.join(self.temp_dir, 'META-INF', 'container.xml'), 'wb') as metainf:
             tree.write(metainf, encoding="utf-8", xml_declaration=True)
 
     def __create_content_file(self):
@@ -181,23 +205,26 @@ class Epub:
             ET.SubElement(spine, 'itemref', {'idref': chapter.id})
 
         tree = ET.ElementTree(root)
-        with open(os.path.join(self.temp_dir, 'OEBPS', 'content.opf'), 'w') as content:
+        with open(os.path.join(self.temp_dir, 'OEBPS', 'content.opf'), 'wb') as content:
             tree.write(content, encoding="utf-8", xml_declaration=True)
 
     def __create_toc_page(self):
-        root = ET.Element('html', {'xmlns': 'http://www.w3.org/1999/xhtml'})
-        ET.SubElement(ET.SubElement(root, 'head'),
-                      'title').text = 'Table of Contents'
-        body = ET.SubElement(root, 'body')
-        ET.SubElement(body, 'h1').text = 'Table of Contents'
-        ol = ET.SubElement(body, 'ol')
-        for chapter in self.content.chapters:
-            ET.SubElement(ET.SubElement(ol, 'li'), 'a', {
-                          'href': os.path.basename(chapter.relative_path)}).text = chapter.title
+        try:
+            root = ET.Element('html', {'xmlns': 'http://www.w3.org/1999/xhtml'})
+            ET.SubElement(ET.SubElement(root, 'head'),
+                        'title').text = 'Table of Contents'
+            body = ET.SubElement(root, 'body')
+            ET.SubElement(body, 'h1').text = 'Table of Contents'
+            ol = ET.SubElement(body, 'ol')
+            for chapter in self.content.chapters:
+                ET.SubElement(ET.SubElement(ol, 'li'), 'a', {
+                            'href': os.path.basename(chapter.relative_path)}).text = chapter.title
 
-        tree = ET.ElementTree(root)
-        with open(os.path.join(self.temp_dir, 'OEBPS', 'Text', 'toc.xhtml'), 'w') as toc_page:
-            tree.write(toc_page, encoding="utf-8", xml_declaration=True)
+            tree = ET.ElementTree(root)
+            with open(os.path.join(self.temp_dir, 'OEBPS', 'Text', 'toc.xhtml'), 'wb') as toc_page:
+                tree.write(toc_page, encoding="utf-8", xml_declaration=True)
+        except Exception:
+            logging.error('Error creating toc page.', exc_info=True)
 
     def __create_mymetype_file(self):
         mimetype_path = os.path.join(self.temp_dir, 'mimetype')
