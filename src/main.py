@@ -5,11 +5,12 @@ import xml.etree.ElementTree as ET
 import zipfile
 import shutil
 import logging
+
 from typing import List, Optional, Union
 from src.utils.language import Language
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     filename='app.log',
     filemode='w'
@@ -18,9 +19,17 @@ logging.basicConfig(
 
 class EpubMetadata:
     def __init__(self, title: str, author: str, language: Union[Language, str], description: str, subjects: List[str], publication_date: str, publisher: str):
+        if isinstance(language, str):
+            try:
+                self.language = Language(language).value
+            except ValueError:
+                raise ValueError(f'Invalid language: {language}')
+        elif isinstance(language, Language):
+            self.language = language.value
+        else:
+            raise TypeError('Language must be of type Language or str')
         self.title = title
         self.author = author
-        self.language = language
         self.description = description
         self.subjects = subjects
         self.publication_date = publication_date
@@ -122,7 +131,7 @@ class Epub:
         tree = ET.ElementTree(root)
         logging.info('Toc file created.')
         with open(os.path.join(self.temp_dir, 'OEBPS', 'toc.ncx'), 'wb') as toc:
-            tree.write(toc, encoding="utf-8", xml_declaration=True)
+            tree.write(toc, encoding='utf-8', xml_declaration=True)
 
     def __create_chapters_files(self):
         ET.register_namespace('', 'http://www.w3.org/1999/xhtml')
@@ -131,7 +140,7 @@ class Epub:
                 chapter.id = f'C{index + 1}'
                 chapter.relative_path = f'Text/{chapter.id}.xhtml'
 
-                html = ET.Element('html', xmlns="http://www.w3.org/1999/xhtml")
+                html = ET.Element('html', xmlns='http://www.w3.org/1999/xhtml')
                 head = ET.SubElement(html, 'head')
                 title = ET.SubElement(head, 'title')
                 title.text = chapter.title
@@ -147,12 +156,12 @@ class Epub:
 
                 try:
                     content_fragment = ET.fromstring(
-                        f"<div>{chapter.content_html}</div>")
+                        f'<div>{chapter.content_html}</div>')
                     for child in content_fragment:
                         body.append(child)
                 except ET.ParseError:
-                    logging.warning(f"Invalid HTML content in chapter {
-                                    chapter.id}. Skipping contentHTML.")
+                    logging.warning(f'Invalid HTML content in chapter {
+                                    chapter.id}. Skipping contentHTML.')
 
                 tree = ET.ElementTree(html)
                 tree.write(os.path.join(self.temp_dir, 'OEBPS', chapter.relative_path), encoding='utf-8',
@@ -169,7 +178,7 @@ class Epub:
 
         tree = ET.ElementTree(root)
         with open(os.path.join(self.temp_dir, 'META-INF', 'container.xml'), 'wb') as metainf:
-            tree.write(metainf, encoding="utf-8", xml_declaration=True)
+            tree.write(metainf, encoding='utf-8', xml_declaration=True)
 
     def __create_content_file(self):
         root = ET.Element('package', {
@@ -209,7 +218,7 @@ class Epub:
 
         tree = ET.ElementTree(root)
         with open(os.path.join(self.temp_dir, 'OEBPS', 'content.opf'), 'wb') as content:
-            tree.write(content, encoding="utf-8", xml_declaration=True)
+            tree.write(content, encoding='utf-8', xml_declaration=True)
 
     def __create_toc_page(self):
         try:
@@ -226,7 +235,7 @@ class Epub:
 
             tree = ET.ElementTree(root)
             with open(os.path.join(self.temp_dir, 'OEBPS', 'Text', 'toc.xhtml'), 'wb') as toc_page:
-                tree.write(toc_page, encoding="utf-8", xml_declaration=True)
+                tree.write(toc_page, encoding='utf-8', xml_declaration=True)
         except Exception:
             logging.error('Error creating toc page.', exc_info=True)
 
