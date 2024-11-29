@@ -1,0 +1,155 @@
+/* styles/style.css */
+
+/* General styles */
+body {
+    font-family: 'Georgia', serif;
+    font-size: 1em;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    color: #333;
+    background: #fff;
+}
+
+/* Paragraph styles */
+p {
+    text-align: justify;
+    margin: 1em 0;
+}
+
+/* Header styles */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'Palatino', serif;
+    margin: 1.5em 0 0.5em;
+    line-height: 1.2;
+}
+
+/* Chapter title */
+h1 {
+    font-size: 2em;
+    text-align: center;
+    margin-top: 2em;
+    margin-bottom: 1em;
+}
+
+/* Subtitle */
+h2 {
+    font-size: 1.5em;
+    text-align: center;
+    margin-top: 1.5em;
+    margin-bottom: 1em;
+}
+
+/* Italic text */
+em,
+i {
+    font-style: italic;
+}
+
+/* Bold text */
+strong,
+b {
+    font-weight: bold;
+}
+
+/* Blockquote styles */
+blockquote {
+    margin: 1.5em;
+    padding: 0.5em 1em;
+    border-left: 4px solid #ccc;
+    background: #f9f9f9;
+    font-style: italic;
+}
+
+/* Image styles */
+img {
+    display: block;
+    max-width: 100%;
+    margin: 1em auto;
+}
+
+/* Link styles */
+a {
+    color: #1e90ff;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* List styles */
+ul,
+ol {
+    margin: 1em 0;
+    padding-left: 1.5em;
+}
+
+li {
+    margin: 0.5em 0;
+}
+
+/* Footnote styles */
+.footnote {
+    font-size: 0.8em;
+    line-height: 1.4;
+}
+
+/* Page break for new chapters */
+div.chapter {
+    page-break-before: always;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    body {
+        color: #ddd;
+        background: #222;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        color: #eee;
+    }
+
+    blockquote {
+        border-left: 4px solid #555;
+        background: #333;
+    }
+
+    a {
+        color: #6495ed;
+    }
+}
+
+@media only screen and (min-width: 600px) {
+    body {
+        font-size: 1.1em;
+    }
+
+    p {
+        margin: 1.2em 0;
+    }
+
+    h1 {
+        font-size: 2.2em;
+    }
+
+    h2 {
+        font-size: 1.7em;
+    }
+
+    blockquote {
+        margin: 2em;
+        padding: 0.7em 1.2em;
+    }
+}

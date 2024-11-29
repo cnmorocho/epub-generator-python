@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 import shutil
 import logging
+from pathlib import Path
 
 from typing import List, Optional, Union
 from src.utils.language import Language
@@ -15,6 +16,15 @@ logging.basicConfig(
     filename='app.log',
     filemode='w'
 )
+
+class EpubConfig:
+    def __init__(self, styles_path: Optional[str]):
+        if styles_path:
+            if not os.path.exists(styles_path):
+                raise ValueError(f'File doesn\'t exist for path: {os.path.abspath(styles_path)}')
+            if not Path(styles_path).suffix == '.css':
+                raise ValueError(f'File is not a .css file')
+        self.styles_path = styles_path
 
 
 class EpubMetadata:
@@ -56,7 +66,7 @@ class EpubContent:
 
 
 class Epub:
-    def __init__(self, metadata: EpubMetadata, content: EpubContent, output_dir: str):
+    def __init__(self, metadata: EpubMetadata, content: EpubContent, output_dir: str, config: Optional[EpubConfig]):
         if not isinstance(metadata, EpubMetadata):
             raise ValueError(f'metadata of type {type(
                 metadata)} must be an instance of EpubMetadata')
@@ -68,12 +78,14 @@ class Epub:
         self.content = content
         self.output_dir = output_dir
         self.uuid = uuid.uuid4()
+        self.config = config
 
     def build(self):
         '''
         A partir de los parametros definidos en el constructor al instanciar la clase, crea la estructura del epub, completa el epub con toda la información y lo comprime en el formato epub.
         '''
         self.__create_epub_structure()
+        self.__create_styles()
         self.__create_chapters_files()
         self.__create_toc_page()
         self.__create_toc_file()
@@ -208,6 +220,9 @@ class Epub:
         manifest = ET.SubElement(root, 'manifest')
         ET.SubElement(manifest, 'item', {
                       'id': 'toc.xhtml', 'href': 'Text/toc.xhtml', 'media-type': 'application/xhtml+xml'})
+        ET.SubElement(manifest, 'item', {
+            'id': 'styles.css', 'href': 'Styles/styles.css', 'media-type': 'text/css'
+        })
         for chapter in self.content.chapters:
             ET.SubElement(manifest, 'item', {
                           'id': chapter.id, 'href': chapter.relative_path, 'media-type': 'application/xhtml+xml'})
@@ -243,6 +258,12 @@ class Epub:
         mimetype_path = os.path.join(self.temp_dir, 'mimetype')
         with open(mimetype_path, 'w', encoding='utf-8') as mimetype:
             mimetype.write('application/epub+zip')
+
+    def __create_styles(self):
+        if not self.config.styles_path:
+            return
+        shutil.copyfile(self.config.styles_path, os.path.join(self.temp_dir, 'OEBPS', 'Styles', 'styles.css'))
+
 
     def __clean_up(self):
         shutil.rmtree(self.temp_dir)

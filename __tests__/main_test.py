@@ -1,4 +1,4 @@
-from src.main import Epub, EpubChapter, EpubContent, EpubMetadata
+from src.main import Epub, EpubChapter, EpubContent, EpubMetadata, EpubConfig
 from src.utils.language import Language
 import os
 
@@ -38,6 +38,6 @@ def test_build_epub() -> None:
 
     content = EpubContent(epub_chapters)
     output_dir = '.'
-    Epub(metadata, content, output_dir).build()
+    Epub(metadata, content, output_dir, EpubConfig(styles_path='__tests__/utils/styles.css')).build()
 
     assert os.path.exists(os.path.join(output_dir, f'{metadata.title}.epub'))
